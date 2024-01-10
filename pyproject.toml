@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "llm4qual"
+version = "0.1.0"
+description = ""
+authors = ["Amogh Mannekote <msamogh@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
