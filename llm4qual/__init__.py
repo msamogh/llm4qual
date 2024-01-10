@@ -2,6 +2,7 @@ from typing import *
 from dataclasses import dataclass, field
 
 from datasets.features import ClassLabel, Features, Value
+import datasets.features as features
 from datasets.tasks.base import TaskTemplate
 
 import evaluate
@@ -10,7 +11,6 @@ from evaluate.evaluation_suite import SubTask
 
 
 class LLMProxyConfig(datasets.BuilderConfig):
-
     def __init__(self, name, version, description, features, **kwargs):
         super().__init__(name=name, version=version, description=description, **kwargs)
         self.features = features
@@ -18,7 +18,6 @@ class LLMProxyConfig(datasets.BuilderConfig):
 
 @dataclass
 class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
-
     def __init__(
         self,
         *,
@@ -63,7 +62,9 @@ class LLMProxyRegressionTask(TaskTemplate):
         default="llm-proxy-regression",
         metadata={"include_in_asdict_even_if_is_default": True},
     )
-    input_schema: ClassVar[Features] = Features({"input_variables": Sequence("string")})
+    input_schema: ClassVar[Features] = Features(
+        {"input_variables": features.Sequence(feature={"text": "string"})}
+    )
     label_schema: ClassVar[Features] = Features({"label_values": ClassLabel})
     input_variables_column: str = "input_variables"
     label_column: str = "label_values"
@@ -82,7 +83,9 @@ class LLMProxyClassificationTask(TaskTemplate):
         default="llm-proxy-classification",
         metadata={"include_in_asdict_even_if_is_default": True},
     )
-    input_schema: ClassVar[Features] = Features({"input_variables": Sequence("string")})
+    input_schema: ClassVar[Features] = Features(
+        {"input_variables": features.Sequence(feature={"text": "string"})}
+    )
     label_schema: ClassVar[Features] = Features({"labels": Value})
     input_variables_column: str = "input_variables"
     label_column: str = "labels"
