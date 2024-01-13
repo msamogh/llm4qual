@@ -126,7 +126,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         prompt_name: Text,
         model_name: Text = "gpt-3.5-turbo",
         temperature: float = 0.1,
-        return_dict: bool = False,
+        return_dict: bool = True,
     ) -> Dict:
         from transformers.pipelines import LangchainModelForProxyLLM, LangchainConfig
 
@@ -148,12 +148,13 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         temperature: float = 0.1,
     ) -> Dict:
         return {
-            f"{rubric_name}/{prompt_name}": self.run_single_prompt(
+            f"{rubric_name}/{prompt_name}": self.evaluate_rubric_with_single_prompt(
                 prompts_dir=prompts_dir,
                 rubric_name=rubric_name,
                 prompt_name=prompt_name,
                 model_name=model_name,
                 temperature=temperature,
+                return_dict=False,
             )
             for prompt_name in self.rubrics_to_prompt_templates[rubric_name]
         }
@@ -165,11 +166,13 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         temperature: float = 0.1,
     ) -> Dict:
         return {
-            f"{rubric_name}/{prompt_name}": self.evaluate_rubric_with_all_prompts(
+            f"{rubric_name}/{prompt_name}": self.evaluate_rubric_with_single_prompt(
                 prompts_dir=prompts_dir,
                 rubric_name=rubric_name,
+                prompt_name=prompt_name,
                 model_name=model_name,
                 temperature=temperature,
+                return_dict=False,
             )
             for rubric_name in self.rubrics_to_prompt_templates.keys()
             for prompt_name in self.rubrics_to_prompt_templates[rubric_name]
