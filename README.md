@@ -40,7 +40,20 @@ cd llm4qual
 2. Navigate to the llm-proxy directory and install any necessary dependencies:
 ```bash
 cd llm-proxy
-pip install -r requirements.txt
+poetry shell
+poetry install
+```
+
+3. Install Transformers4Qual:
+```bash
+git clone https://github.com/msamogh/transformers4qual.git
+pip install -e transformers4qual
+```
+
+4. Install Evaluate4Qual:
+```bash
+git clone https://github.com/msamogh/evaluate4qual.git
+pip install -e evaluate4qual
 ```
 
 ## Usage
