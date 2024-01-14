@@ -11,14 +11,19 @@ import datasets
 import datasets.features as features
 
 
+RAG = datasets.splits.NamedSplit("rag")
+VAL_TEST = datasets.splits.NamedSplit("val_test")
+
+
 def get_prompt_template(
     prompts_root_dir: Text,
     suite_name: Text,
     rubric_name: Text,
     prompt_template_name: Text,
 ) -> Text:
+    rubric_directory = "/".join(rubric_name.split("."))
     return load_prompt(
-        f"{prompts_root_dir}/{suite_name}/rubrics/{rubric_name.split('.')[0]}/{rubric_name.split('.')[1]}/{prompt_template_name}.yaml"
+        f"{prompts_root_dir}/{suite_name}/rubrics/{rubric_directory}/{prompt_template_name}.yaml"
     )
 
 
