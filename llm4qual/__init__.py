@@ -135,10 +135,16 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
     ) -> Dict:
         from transformers.pipelines import LangchainModelForProxyLLM, LangchainConfig
 
-        runnable = load_prompt(
-            f"prompts/{prompts_dir}/rubrics/{rubric_name.replace('.', '/')}/{prompt_name}.yaml"
-        ) | ChatOpenAI(model_name=model_name, temperature=temperature)
-        pipeline = LangchainModelForProxyLLM(LangchainConfig(runnable=runnable))
+        runnable = (
+            load_prompt(
+                f"prompts/{prompts_dir}/rubrics/{rubric_name.replace('.', '/')}/{prompt_name}.yaml"
+            )
+            | ChatOpenAI(model_name=model_name, temperature=temperature)
+            | (lambda response: {"label": response})
+        )
+        pipeline = LangchainModelForProxyLLM(
+            LangchainConfig(runnable=runnable, mock_llm_call=True)
+        )
         return (
             {f"{rubric_name}/{prompt_name}": super().run(pipeline)}
             if return_dict
