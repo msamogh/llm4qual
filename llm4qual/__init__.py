@@ -165,7 +165,6 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         data: Union[Text, datasets.Dataset],
         prompts_dir: Text,
         model_name: Text,
-        results_agg_fn: Callable,
         **evaluator_kwargs,
     ):
         for rubric_name in rubrics_to_prompt_templates.keys():
