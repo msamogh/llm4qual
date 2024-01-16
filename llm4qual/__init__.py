@@ -144,9 +144,13 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
             LangchainConfig(runnable=runnable, mock_llm_call=True)
         )
         return (
-            {f"{rubric_name}/{prompt_name}": super().run(pipeline)}
+            {
+                f"{rubric_name}/{prompt_name}": super().run_task_wise(
+                    rubric_name, pipeline
+                )
+            }
             if return_dict
-            else super().run(pipeline)
+            else super().run_task_wise(rubric_name, pipeline)
         )
 
     def evaluate_rubric_with_all_prompts(
@@ -197,7 +201,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         prompts_dir: Text,
         model_name: Text,
         results_agg_fn: Callable,
-        **evaluator_kwargs
+        **evaluator_kwargs,
     ):
         for rubric_name in rubrics_to_prompt_templates.keys():
             for prompt_name in rubrics_to_prompt_templates[rubric_name]:
@@ -213,13 +217,13 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                     rubric_name=rubric_name,
                     prompt_name=prompt_name,
                     model_name=model_name,
-                    **evaluator_kwargs
+                    **evaluator_kwargs,
                 )
                 json.dump(
-                    results_agg_fn(results),
+                    results,
                     open(
                         f"results/{evaluation_suite.suite_name}/{rubric_name}_{prompt_name}_{model_name}.json",
                         "w",
                     ),
                     indent=2,
-            )
+                )
