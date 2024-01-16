@@ -2,13 +2,12 @@
 
 Welcome to the llm4qual repository, your go-to toolkit for enhancing qualitative research with Large Language Models (LLMs). Our mission is to harness the power of LLMs to streamline and support various tasks in qualitative research.
 
-## Supported Pipelines
-
-As of Jan 2024, llm4qual supports a single task (llm-proxy: simulating human annotators in text labeling tasks using LLMs). But we plan to add support for more task types.
+## Supported Workflows
+As of Jan 2024, LLM4Qual supports a single workflow called `llm-proxy`, which uses LLMs to simulate human annotators in text labeling tasks. But we plan to add support for additional workflows.
 
 ### llm-proxy
 
-The `llm-proxy` task is designed to act as a stand-in for human annotators in text-annotation tasks. By leveraging LLMs, `llm-proxy` provides a sophisticated and automated approach to evaluating qualitative data across multiple dimensions.
+The `llm-proxy` workflow is designed to act as a stand-in for human annotators in text-annotation tasks. By leveraging LLMs, `llm-proxy` provides a sophisticated and automated approach to evaluating qualitative data across multiple dimensions.
 
 ## Features
 
