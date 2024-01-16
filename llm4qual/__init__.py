@@ -6,7 +6,7 @@ import json
 from langchain.prompts import load_prompt
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.pydantic_v1 import BaseModel, Field, validator
 
 import evaluate
 import datasets
@@ -18,6 +18,13 @@ VAL_TEST = datasets.splits.NamedSplit("val_test")
 
 class LLMRegressionOutput(BaseModel):
     score: float = Field(description="The score predicted by the model.")
+
+    @validator('score', pre=True, always=True)
+    def set_score_default(cls, v):
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return -1
 
 
 def get_prompt_template(
