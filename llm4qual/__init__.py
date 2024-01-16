@@ -1,14 +1,12 @@
 from typing import *
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial
+import json
 
-from datasets.features import ClassLabel, Features, Value
-from datasets.tasks.base import TaskTemplate
 from langchain.prompts import load_prompt
 from langchain_openai import ChatOpenAI
 import evaluate
 import datasets
-import datasets.features as features
 
 
 RAG = datasets.splits.NamedSplit("rag")
@@ -188,3 +186,40 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
             for rubric_name in self.rubrics_to_prompt_templates.keys()
             for prompt_name in self.rubrics_to_prompt_templates[rubric_name]
         }
+
+    @staticmethod
+    def evaluate_all_and_write_results(
+        suite_name: Text,
+        rubrics_to_prompt_templates: Mapping[Text, Any],
+        metric: Text,
+        split_str: Text,
+        data: Union[Text, datasets.Dataset],
+        prompts_dir: Text,
+        model_name: Text,
+        results_agg_fn: Callable,
+        **evaluator_kwargs
+    ):
+        for rubric_name in rubrics_to_prompt_templates.keys():
+            for prompt_name in rubrics_to_prompt_templates[rubric_name]:
+                evaluation_suite = LLMProxyEvaluationSuite(
+                    suite_name=suite_name,
+                    metric=metric,
+                    data=data,
+                    split_str=split_str,
+                    rubrics_to_prompt_templates=rubrics_to_prompt_templates,
+                )
+                results = evaluation_suite.evaluate_rubric_with_single_prompt(
+                    prompts_dir=prompts_dir,
+                    rubric_name=rubric_name,
+                    prompt_name=prompt_name,
+                    model_name=model_name,
+                    **evaluator_kwargs
+                )
+                json.dump(
+                    results_agg_fn(results),
+                    open(
+                        f"results/{evaluation_suite.suite_name}/{rubric_name}_{prompt_name}_{model_name}.json",
+                        "w",
+                    ),
+                    indent=2,
+            )
