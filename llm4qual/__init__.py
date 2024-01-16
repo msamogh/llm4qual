@@ -129,7 +129,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         prompt_name: Text,
         model_name: Text = "gpt-3.5-turbo",
         temperature: float = 0.1,
-        return_dict: bool = True,
+        return_dict: bool = False,
     ) -> Dict:
         from transformers.pipelines import LangchainModelForProxyLLM, LangchainConfig
 
@@ -146,11 +146,11 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         return (
             {
                 f"{rubric_name}/{prompt_name}": super().run_task_wise(
-                    rubric_name, pipeline
+                    rubric_name, pipeline, return_predictions=True
                 )
             }
             if return_dict
-            else super().run_task_wise(rubric_name, pipeline)
+            else super().run_task_wise(rubric_name, pipeline, return_predictions=True)
         )
 
     @staticmethod
@@ -181,8 +181,12 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                     model_name=model_name,
                     **evaluator_kwargs,
                 )
+                results["predictions"] = list(zip(
+                    results["data"]["project_name"], results["predictions"]
+                ))
+                results.pop("data")
                 json.dump(
-                    results[metric],
+                    results,
                     open(
                         f"results/{evaluation_suite.suite_name}/{rubric_name}_{prompt_name}_{model_name}.json",
                         "w",
