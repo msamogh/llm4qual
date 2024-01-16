@@ -5,12 +5,19 @@ import json
 
 from langchain.prompts import load_prompt
 from langchain_openai import ChatOpenAI
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.pydantic_v1 import BaseModel, Field
+
 import evaluate
 import datasets
 
 
 RAG = datasets.splits.NamedSplit("rag")
 VAL_TEST = datasets.splits.NamedSplit("val_test")
+
+
+class LLMRegressionOutput(BaseModel):
+    score: float = Field(description="The score predicted by the model.")
 
 
 def get_prompt_template(
@@ -138,10 +145,10 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                 f"prompts/{prompts_dir}/rubrics/{rubric_name.replace('.', '/')}/{prompt_name}.yaml"
             )
             | ChatOpenAI(model_name=model_name, temperature=temperature)
-            | (lambda response: {"label": response})
+            | JsonOutputParser(pydantic_object=LLMRegressionOutput)
         )
         pipeline = LangchainModelForProxyLLM(
-            LangchainConfig(runnable=runnable, mock_llm_call=True)
+            LangchainConfig(runnable=runnable, mock_llm_call=False)
         )
         return (
             {
