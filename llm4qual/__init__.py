@@ -133,6 +133,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         model_name: Text = "gpt-3.5-turbo",
         temperature: float = 0.1,
         return_dict: bool = False,
+        mock_llm_call: bool = False
     ) -> Dict:
         from transformers.pipelines import LangchainModelForProxyLLM, LangchainConfig
 
@@ -144,7 +145,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
             | StrOutputParser()
         )
         pipeline = LangchainModelForProxyLLM(
-            LangchainConfig(runnable=runnable, mock_llm_call=False)
+            LangchainConfig(runnable=runnable, mock_llm_call=mock_llm_call)
         )
         return (
             {
