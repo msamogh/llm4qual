@@ -184,13 +184,19 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                     model_name=model_name,
                     **evaluator_kwargs,
                 )
-                output = list(
-                    zip(
-                        results["data"]["project_name"],
-                        results["predictions"],
-                        results["outputs"],
-                    )
-                )
+                data = results.pop("data")
+                predictions = results.pop("predictions")
+                llm_outputs = results.pop("outputs")
+                output = {
+                    "results": list(
+                        zip(
+                            data["project_name"],
+                            predictions,
+                            llm_outputs,
+                        )
+                    ),
+                    **results,
+                }
                 json.dump(
                     output,
                     open(
