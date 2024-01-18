@@ -133,7 +133,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         model_name: Text = "gpt-3.5-turbo",
         temperature: float = 0.1,
         return_dict: bool = False,
-        mock_llm_call: bool = False
+        mock_llm_call: bool = False,
     ) -> Dict:
         from transformers.pipelines import LangchainModelForProxyLLM, LangchainConfig
 
@@ -184,12 +184,15 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                     model_name=model_name,
                     **evaluator_kwargs,
                 )
-                results["predictions"] = list(zip(
-                    results["data"]["project_name"], results["predictions"]
-                ))
-                results.pop("data")
+                output = list(
+                    zip(
+                        results["data"]["project_name"],
+                        results["predictions"],
+                        results["outputs"],
+                    )
+                )
                 json.dump(
-                    results,
+                    output,
                     open(
                         f"results/{evaluation_suite.suite_name}/{rubric_name}_{prompt_name}_{model_name}.json",
                         "w",
