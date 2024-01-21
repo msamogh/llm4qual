@@ -147,6 +147,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         pipeline = LangchainModelForProxyLLM(
             LangchainConfig(runnable=runnable, mock_llm_call=mock_llm_call)
         )
+        print(f"Initialized pipeline: {pipeline.__class__.__name__}")
         return (
             {
                 f"{rubric_name}/{prompt_name}": super().run_task_wise(
@@ -170,6 +171,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
     ):
         for rubric_name in rubrics_to_prompt_templates.keys():
             for prompt_name in rubrics_to_prompt_templates[rubric_name]:
+                print(f"Evaluating {rubric_name}/{prompt_name}")
                 evaluation_suite = LLMProxyEvaluationSuite(
                     suite_name=suite_name,
                     metric=metric,
@@ -177,6 +179,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                     split_str=split_str,
                     rubrics_to_prompt_templates=rubrics_to_prompt_templates,
                 )
+                print(f"Initialized {evaluation_suite.suite_name}")
                 results = evaluation_suite.evaluate_rubric_with_single_prompt(
                     prompts_dir=prompts_dir,
                     rubric_name=rubric_name,
