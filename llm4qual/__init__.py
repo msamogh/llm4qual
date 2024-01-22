@@ -162,6 +162,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
     def evaluate_all_and_write_results(
         suite_name: Text,
         rubrics_to_prompt_templates: Mapping[Text, Any],
+        id_column: Text,
         metric: Text,
         split_str: Text,
         data: Union[Text, datasets.Dataset],
@@ -193,7 +194,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                 output = {
                     "results": list(
                         zip(
-                            data["project_name"],
+                            data[id_column],
                             predictions,
                             llm_outputs,
                         )
