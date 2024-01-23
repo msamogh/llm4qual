@@ -152,7 +152,8 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                 f"{rubric_name}/{prompt_name}": super().run_task_wise(
                     rubric_name, pipeline, return_predictions=True
                 )
-            } if return_dict
+            }
+            if return_dict
             else super().run_task_wise(rubric_name, pipeline, return_predictions=True)
         )
 
