@@ -13,7 +13,6 @@ import datasets
 
 
 RAG = datasets.splits.NamedSplit("rag")
-VAL_TEST = datasets.splits.NamedSplit("val_test")
 
 
 def get_prompt_template(
@@ -83,7 +82,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         suite_name: Text,
         metric: Text,
         data: Text,
-        split_str: Text = "val_test[:40]",
+        split_str: Text,
         rubrics_to_prompt_templates: Mapping[Text, Sequence[Text]],
     ):
         from evaluate.evaluation_suite import SubTask
@@ -153,8 +152,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                 f"{rubric_name}/{prompt_name}": super().run_task_wise(
                     rubric_name, pipeline, return_predictions=True
                 )
-            }
-            if return_dict
+            } if return_dict
             else super().run_task_wise(rubric_name, pipeline, return_predictions=True)
         )
 
