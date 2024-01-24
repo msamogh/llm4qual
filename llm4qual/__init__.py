@@ -2,11 +2,14 @@ from typing import *
 from dataclasses import dataclass
 from functools import partial
 import json
+import os
 
 from langchain.prompts import load_prompt
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.pydantic_v1 import BaseModel, Field, validator
+
+from transformers.pipelines import LangchainModelForProxyLLM, LangchainConfig
 
 import evaluate
 import datasets
@@ -86,8 +89,6 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         rubrics_to_prompt_templates: Mapping[Text, Sequence[Text]],
         process_predictions_fn: Callable[[Any], Any] = lambda x: x,
     ):
-        from evaluate.evaluation_suite import SubTask
-
         super().__init__(suite_name)
 
         self.suite_name = suite_name
@@ -97,8 +98,55 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
             prompts_root_dir="prompts",
             suite_name=suite_name,
         )
-        self.suite = [
-            SubTask(
+        self.suite = self._create_subtasks(
+            data, split_str, metric, process_predictions_fn, suite_name
+        )
+
+    def evaluate_rubric_with_single_prompt(
+        self,
+        prompts_dir: Text,
+        rubric_name: Text,
+        prompt_name: Text,
+        model_name: Text = "gpt-3.5-turbo",
+        temperature: float = 0.1,
+        return_dict: bool = False,
+        mock_llm_call: bool = False,
+    ) -> Dict:
+        runnable = self._prepare_runnable(
+            prompts_dir, rubric_name, prompt_name, model_name, temperature
+        )
+        pipeline = LangchainModelForProxyLLM(
+            LangchainConfig(runnable=runnable, mock_llm_call=mock_llm_call)
+        )
+        return self._run_and_format_results(rubric_name, pipeline, return_dict)
+
+    def _run_and_format_results(self, rubric_name, pipeline, return_dict):
+        results = super().run_task_wise(rubric_name, pipeline, return_predictions=True)
+        if return_dict:
+            return {f"{rubric_name}": results}
+        else:
+            return results
+
+    @staticmethod
+    def _prepare_runnable(
+        prompts_dir: Text,
+        rubric_name: Text,
+        prompt_name: Text,
+        model_name: Text,
+        temperature: float,
+    ) -> Any:
+        runnable = (
+            load_prompt(
+                f"prompts/{prompts_dir}/rubrics/{rubric_name.replace('.', '/')}/{prompt_name}.yaml"
+            )
+            | ChatOpenAI(model_name=model_name, temperature=temperature)
+            | StrOutputParser()
+        )
+        return runnable
+
+    def _create_subtasks(self, data, split_str, metric, process_predictions_fn, suite_name):
+        return [
+            evaluate.evaluation_suite.SubTask(
                 task_type="llm-proxy",
                 data=data,
                 subset=rubric,
@@ -123,41 +171,8 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                 },
             )
             for rubric, input_variables in self.rubrics_to_input_variables.items()
-            for prompt_template_name in rubrics_to_prompt_templates[rubric]
+            for prompt_template_name in self.rubrics_to_prompt_templates[rubric]
         ]
-
-    def evaluate_rubric_with_single_prompt(
-        self,
-        prompts_dir: Text,
-        rubric_name: Text,
-        prompt_name: Text,
-        model_name: Text = "gpt-3.5-turbo",
-        temperature: float = 0.1,
-        return_dict: bool = False,
-        mock_llm_call: bool = False,
-    ) -> Dict:
-        from transformers.pipelines import LangchainModelForProxyLLM, LangchainConfig
-
-        runnable = (
-            load_prompt(
-                f"prompts/{prompts_dir}/rubrics/{rubric_name.replace('.', '/')}/{prompt_name}.yaml"
-            )
-            | ChatOpenAI(model_name=model_name, temperature=temperature)
-            | StrOutputParser()
-        )
-        pipeline = LangchainModelForProxyLLM(
-            LangchainConfig(runnable=runnable, mock_llm_call=mock_llm_call)
-        )
-        print(f"Initialized pipeline: {pipeline.__class__.__name__}")
-        return (
-            {
-                f"{rubric_name}/{prompt_name}": super().run_task_wise(
-                    rubric_name, pipeline, return_predictions=True
-                )
-            }
-            if return_dict
-            else super().run_task_wise(rubric_name, pipeline, return_predictions=True)
-        )
 
     @staticmethod
     def evaluate_all_and_write_results(
@@ -175,11 +190,13 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         for rubric_name in rubrics_to_prompt_templates.keys():
             for prompt_name in rubrics_to_prompt_templates[rubric_name]:
                 print(f"Evaluating {rubric_name}/{prompt_name}")
+
                 metric = (
                     metric_or_metric_map[rubric_name]
                     if isinstance(metric_or_metric_map, Mapping)
                     else metric_or_metric_map
                 )
+
                 evaluation_suite = LLMProxyEvaluationSuite(
                     suite_name=suite_name,
                     metric=metric,
@@ -189,6 +206,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                     process_predictions_fn=process_predictions_fn,
                 )
                 print(f"Initialized {evaluation_suite.suite_name}")
+
                 results = evaluation_suite.evaluate_rubric_with_single_prompt(
                     prompts_dir=prompts_dir,
                     rubric_name=rubric_name,
@@ -196,6 +214,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                     model_name=model_name,
                     **evaluator_kwargs,
                 )
+
                 output = {
                     "results": [
                         {"id": data_id, "prediction": prediction, "output": output_data}
@@ -208,11 +227,16 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                     **results,
                 }
                 output["raw_predictions"] = [x["prediction"] for x in output["results"]]
-                json.dump(
-                    output,
-                    open(
-                        f"results/{evaluation_suite.suite_name}/{rubric_name}_{prompt_name}_{model_name}.json",
-                        "w",
-                    ),
-                    indent=2,
+
+                # Ensure the results directory exists
+                results_dir = os.path.join("results", evaluation_suite.suite_name)
+                os.makedirs(results_dir, exist_ok=True)
+
+                # Write the results to a JSON file
+                results_file_path = os.path.join(
+                    results_dir, f"{rubric_name}_{prompt_name}_{model_name}.json"
                 )
+                with open(results_file_path, "w") as file:
+                    json.dump(output, file, indent=2)
+
+                print(f"Results written to {results_file_path}")
