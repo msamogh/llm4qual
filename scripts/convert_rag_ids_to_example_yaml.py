@@ -11,7 +11,7 @@ def convert(
     dataset_script: Text,
     id_column_name: Text,
     rag_ids_file_path: Text,
-    output_file_path: Text,
+    output_file_dir: Text,
     output_file_name: Text = "examples.yaml",
 ):
     dataset = load_dataset(dataset_script)["rag"]
@@ -21,7 +21,7 @@ def convert(
 
     with open(rag_ids_file_path, "r") as csvfile:
         reader = csv.reader(csvfile)
-        next(reader) # skip header
+        next(reader)  # skip header
         for row in reader:
             rubric, project_name, _, _ = row
             rubric_wise_rag_projects[rubric].append(project_name)
@@ -35,7 +35,7 @@ def convert(
                 rubric_wise_output_dicts[rubric].append(project)
 
             rubric_path_element = rubric.replace(".", "/")
-            path = f"{output_file_path}/{rubric_path_element}/{output_file_name}"
+            path = f"{output_file_dir}/{rubric_path_element}/{output_file_name}"
             with open(path, "w") as outfile:
                 yaml.dump(rubric_wise_output_dicts[rubric], outfile)
 
