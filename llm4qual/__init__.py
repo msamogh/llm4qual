@@ -119,7 +119,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                         prompt_template_name=prompt_template_name,
                     ).input_variables,
                     "label_column": rubric,
-                    "predictions_processor_fn": process_predictions_fn
+                    "predictions_processor_fn": process_predictions_fn,
                 },
             )
             for rubric, input_variables in self.rubrics_to_input_variables.items()
@@ -164,7 +164,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         suite_name: Text,
         rubrics_to_prompt_templates: Mapping[Text, Any],
         id_column: Text,
-        metric: Text,
+        metric_or_metric_map: Union[Mapping[Text, Text], Text],
         split_str: Text,
         data: Union[Text, datasets.Dataset],
         prompts_dir: Text,
@@ -175,6 +175,11 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         for rubric_name in rubrics_to_prompt_templates.keys():
             for prompt_name in rubrics_to_prompt_templates[rubric_name]:
                 print(f"Evaluating {rubric_name}/{prompt_name}")
+                metric = (
+                    metric_or_metric_map[rubric_name]
+                    if isinstance(metric_or_metric_map, Mapping)
+                    else metric_or_metric_map
+                )
                 evaluation_suite = LLMProxyEvaluationSuite(
                     suite_name=suite_name,
                     metric=metric,
@@ -192,16 +197,17 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                     **evaluator_kwargs,
                 )
                 output = {
-                    "results": list(
-                        zip(
+                    "results": [
+                        {"id": data_id, "prediction": prediction, "output": output_data}
+                        for data_id, prediction, output_data in zip(
                             results.pop("data")[id_column],
                             results.pop("predictions"),
                             results.pop("outputs"),
                         )
-                    ),
+                    ],
                     **results,
                 }
-                output["raw_predictions"] = [x[1] for x in output["results"]]
+                output["raw_predictions"] = [x["prediction"] for x in output["results"]]
                 json.dump(
                     output,
                     open(
