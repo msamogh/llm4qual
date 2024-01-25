@@ -87,7 +87,9 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         data: Text,
         split_str: Text,
         rubrics_to_prompt_templates: Mapping[Text, Sequence[Text]],
-        process_predictions_fn: Callable[[Any], Any] = lambda x: x,
+        process_predictions_fn_or_map: Union[
+            Mapping[Text, Callable], Callable
+        ] = lambda x: x,
     ):
         super().__init__(suite_name)
 
@@ -99,7 +101,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
             suite_name=suite_name,
         )
         self.suite = self._create_subtasks(
-            data, split_str, metric, process_predictions_fn, suite_name
+            data, split_str, metric, process_predictions_fn_or_map, suite_name
         )
 
     def evaluate_rubric_with_single_prompt(
@@ -144,7 +146,9 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         )
         return runnable
 
-    def _create_subtasks(self, data, split_str, metric, process_predictions_fn, suite_name):
+    def _create_subtasks(
+        self, data, split_str, metric, process_predictions_fn_or_map, suite_name
+    ):
         return [
             evaluate.evaluation_suite.SubTask(
                 task_type="llm-proxy",
@@ -167,7 +171,9 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                         prompt_template_name=prompt_template_name,
                     ).input_variables,
                     "label_column": rubric,
-                    "predictions_processor_fn": process_predictions_fn,
+                    "predictions_processor_fn": process_predictions_fn_or_map[rubric]
+                    if isinstance(process_predictions_fn_or_map, Mapping)
+                    else process_predictions_fn,
                 },
             )
             for rubric, input_variables in self.rubrics_to_input_variables.items()
@@ -184,7 +190,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         data: Union[Text, datasets.Dataset],
         prompts_dir: Text,
         model_name: Text,
-        process_predictions_fn: Callable[[Any], Any] = lambda x: x,
+        process_predictions_fn_or_map: Union[Mapping[Text, Callable], Callable] = lambda x: x,
         **evaluator_kwargs,
     ):
         for rubric_name in rubrics_to_prompt_templates.keys():
@@ -203,7 +209,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                     data=data,
                     split_str=split_str,
                     rubrics_to_prompt_templates=rubrics_to_prompt_templates,
-                    process_predictions_fn=process_predictions_fn,
+                    process_predictions_fn_or_map=process_predictions_fn_or_map,
                 )
                 print(f"Initialized {evaluation_suite.suite_name}")
 
