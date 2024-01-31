@@ -6,6 +6,7 @@ import os
 
 from langchain.prompts import load_prompt
 from langchain_openai import ChatOpenAI
+from langchain_community.llms import Replicate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.pydantic_v1 import BaseModel, Field, validator
 
@@ -16,6 +17,15 @@ import datasets
 
 
 RAG = datasets.splits.NamedSplit("rag")
+
+REPLICATE_LLAMA_MODELS_MAP = {
+    "llama-2-7b": "meta/llama-2-7b:acdbe5a4987a29261ba7d7d4195ad4fa6b62ce27b034f989fcb9ab0421408a7c",
+    "llama-2-7b-chat": "meta/llama-2-7b-chat:f1d50bb24186c52daae319ca8366e53debdaa9e0ae7ff976e918df752732ccc4",
+    "llama-2-13b": "meta/llama-2-13b:dc4f980befd2103b0fb17d5854634c0f56d6f80a1a02be1b6f8859ac8ba02896",
+    "llama-2-13b-chat": "meta/llama-2-13b-chat:56acad22679f6b95d6e45c78309a2b50a670d5ed29a37dd73d182e89772c02f1",
+    "llama-2-70b": "meta/llama-2-70b:14ce4448d5e7e9ed0c37745ac46eca157aab09061f0c179ac2b323b5de56552b",
+    "llama-2-70b-chat": "meta/llama-2-70b-chat:2d19859030ff705a87c746f7e96eea03aefb71f166725aee39692f1476566d48",
+}
 
 
 def get_prompt_template(
@@ -128,6 +138,12 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
             return {f"{rubric_name}": results}
         else:
             return results
+    
+    @staticmethod
+    def replicate_llm(original_llm, stop_sequences):
+        def _replicate_llm(prompt):
+            return original_llm(prompt.text, stop=stop_sequences)
+        return _replicate_llm
 
     @staticmethod
     def _prepare_runnable(
@@ -137,11 +153,18 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         model_name: Text,
         temperature: float,
     ) -> Any:
+        if model_name.startswith("gpt"):
+            llm = ChatOpenAI(model_name=model_name, temperature=temperature)
+        elif model_name.startswith("llama"):
+            llm = Replicate(
+                model=REPLICATE_LLAMA_MODELS_MAP[model_name],
+                model_kwargs={"temperature": temperature},
+            )
         runnable = (
             load_prompt(
                 f"prompts/{prompts_dir}/rubrics/{rubric_name.replace('.', '/')}/{prompt_name}.yaml"
             )
-            | ChatOpenAI(model_name=model_name, temperature=temperature)
+            | LLMProxyEvaluationSuite.replicate_llm(llm, ["\n"])
             | StrOutputParser()
         )
         return runnable
