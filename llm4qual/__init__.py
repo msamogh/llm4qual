@@ -160,11 +160,12 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                 model=REPLICATE_LLAMA_MODELS_MAP[model_name],
                 model_kwargs={"temperature": temperature},
             )
+            llm = LLMProxyEvaluationSuite.replicate_llm(llm, ["\n"])
         runnable = (
             load_prompt(
                 f"prompts/{prompts_dir}/rubrics/{rubric_name.replace('.', '/')}/{prompt_name}.yaml"
             )
-            | LLMProxyEvaluationSuite.replicate_llm(llm, ["\n"])
+            | llm
             | StrOutputParser()
         )
         return runnable
@@ -209,13 +210,15 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         rubrics_to_prompt_templates: Mapping[Text, Any],
         id_column: Text,
         metric_or_metric_map: Union[Mapping[Text, Text], Text],
-        split_str: Text,
+        split: Text,
         data: Union[Text, datasets.Dataset],
         prompts_dir: Text,
         model_name: Text,
+        limit_num_samples: Optional[int] = None,
         process_predictions_fn_or_map: Union[Mapping[Text, Callable], Callable] = lambda x: x,
         **evaluator_kwargs,
     ):
+        split_str = f"{split}[{limit_num_samples}]" if limit_num_samples else split
         for rubric_name in rubrics_to_prompt_templates.keys():
             for prompt_name in rubrics_to_prompt_templates[rubric_name]:
                 print(f"Evaluating {rubric_name}/{prompt_name}")
@@ -263,7 +266,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
 
                 # Write the results to a JSON file
                 results_file_path = os.path.join(
-                    results_dir, f"{rubric_name}_{prompt_name}_{model_name}.json"
+                    results_dir, f"{rubric_name}_{prompt_name}_{split_str}_{model_name}.json"
                 )
                 with open(results_file_path, "w") as file:
                     json.dump(output, file, indent=2)
