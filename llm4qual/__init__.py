@@ -197,7 +197,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                     "label_column": rubric,
                     "predictions_processor_fn": process_predictions_fn_or_map[rubric]
                     if isinstance(process_predictions_fn_or_map, Mapping)
-                    else process_predictions_fn,
+                    else process_predictions_fn_or_map,
                 },
             )
             for rubric, input_variables in self.rubrics_to_input_variables.items()
@@ -216,6 +216,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
         model_name: Text,
         limit_num_samples: Optional[int] = None,
         process_predictions_fn_or_map: Union[Mapping[Text, Callable], Callable] = lambda x: x,
+        results_dir: Text = "results",
         **evaluator_kwargs,
     ):
         split_str = f"{split}[{limit_num_samples}]" if limit_num_samples else split
@@ -261,7 +262,7 @@ class LLMProxyEvaluationSuite(evaluate.EvaluationSuite):
                 output["raw_predictions"] = [x["prediction"] for x in output["results"]]
 
                 # Ensure the results directory exists
-                results_dir = os.path.join("results", evaluation_suite.suite_name)
+                results_dir = os.path.join(results_dir)
                 os.makedirs(results_dir, exist_ok=True)
 
                 # Write the results to a JSON file
